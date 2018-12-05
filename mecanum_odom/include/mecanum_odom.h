@@ -24,24 +24,19 @@ public:
 
 mecanum_odom();
 ~mecanum_odom(){}
-// void robotCmdCallBack(const geometry_msgs::Twist::ConstPtr& msg);
 void encoderCallBack(const nav_msgs::Odometry::ConstPtr& msg);
-// void testCmdvelCallBack(const geometry_msgs::Twist::ConstPtr& msg);
 void keyDownCallBack(const keyboard::Key::ConstPtr& msg);
 void decode(double, double, double, double);
-// void publishwheelvel(double vel_0, double vel_1, double vel_2, double vel_3);
-// void publishOdom(double vx_m_s, double vy_m_s, double w_rad_s);
 void publishOdom();
 void plan(double vx_m_s, double vy_m_s, double w_rad_s);
 double last_vel_[3];//YT store robot center velocity
+	double encoder_m_s_[4];
 private:
 	ros::WallTime last_walltime_, now_walltime_;
+	ros::Time last_time_in_msg_, now_time_in_msg_;
 	ros::Subscriber encoder_sub_, encoder_test_sub_;
-// ros::Subscriber wheel_sub_;
 	ros::Subscriber key_sub_;
-// ros::Publisher wheel_pub_;
 	ros::Publisher odom_pub_, modelstate_pub_;
-// double wheel_vel_[4];
-	double encoder_m_s_[4];
+
 	double x_m_, y_m_, w_rad_;
 };

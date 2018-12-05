@@ -14,6 +14,7 @@ find_package(catkin REQUIRED
   gazebo_msgs
   tf
   keyboard
+  nav_msgs
 )
 
 ## System dependencies are found with CMake's conventions

@@ -3,15 +3,19 @@
 #include <geometry_msgs/Twist.h>
 #include <gazebo_msgs/ModelState.h>
 #include "tf/transform_datatypes.h"
+#include <nav_msgs/Odometry.h>
+#include <fstream>
+#include <iostream>
 
 mecanum_odom::mecanum_odom()
 {
 	ros::NodeHandle n;
     encoder_sub_ = n.subscribe("/jzhw/odom", 1, &mecanum_odom::encoderCallBack, this);
-    encoder_test_sub_ = n.subscribe("/jzhw/cmd_vel", 1, &mecanum_odom::testCmdvelCallBack, this);
+    // encoder_test_sub_ = n.subscribe("/jzhw/cmd_vel", 1, &mecanum_odom::testCmdvelCallBack, this);
 	key_sub_ = n.subscribe("/keyboard/keydown", 1, &mecanum_odom::keyDownCallBack, this);
-    odom_pub_ = n.advertise<geometry_msgs::Twist>("/jzhw/cmd_vel", 1);
-    modelstate_pub_ = n.advertise<gazebo_msgs::ModelState>("/gazebo/set_model_state", 1);
+    odom_pub_ = n.advertise<geometry_msgs::PoseStamped>("/jzhw/odom_from_encoder", 1);
+    // modelstate_pub_ = n.advertise<gazebo_msgs::ModelState>("/gazebo/set_model_state", 1);
+
     x_m_ = 0;
     y_m_ = 0;
     w_rad_ = 0;
@@ -22,48 +26,57 @@ mecanum_odom::mecanum_odom()
     now_walltime_ = ros::WallTime::now();
 }
 
-void mecanum_odom::testCmdvelCallBack(const geometry_msgs::Twist::ConstPtr& msg)
-{
-    last_walltime_ = now_walltime_;
-    now_walltime_ = ros::WallTime::now();
+// void mecanum_odom::testCmdvelCallBack(const geometry_msgs::Twist::ConstPtr& msg)
+// {
+//     last_walltime_ = now_walltime_;
+//     now_walltime_ = ros::WallTime::now();
 
-    encoder_m_s_[0] = msg->linear.x;
-    encoder_m_s_[1] = msg->linear.y;
-    encoder_m_s_[2] = msg->linear.z;
-    encoder_m_s_[3] = msg->angular.x;
-    double temp[4];
-    for(unsigned int i = 0; i < 4; i++)
-    {
-        // temp[i] = encoder_m_s_[i]/r;
-        temp[i] = encoder_m_s_[i];
-    }
-    std::cout << "YT: receive velocity: [" << encoder_m_s_[0] << ", " << encoder_m_s_[1] << ", " << encoder_m_s_[2] << ", " << encoder_m_s_[3] 
-              << "](m/s)" << std::endl << "                     =[" << temp[0] << ", " << temp[1] << ", " << temp[2] << ", " << temp[3] << "](rad/s)" << std::endl;
+//     encoder_m_s_[0] = msg->linear.x;
+//     encoder_m_s_[1] = msg->linear.y;
+//     encoder_m_s_[2] = msg->linear.z;
+//     encoder_m_s_[3] = msg->angular.x;
+//     double temp[4];
+//     for(unsigned int i = 0; i < 4; i++)
+//     {
+//         // temp[i] = encoder_m_s_[i]/r;
+//         temp[i] = encoder_m_s_[i];
+//     }
+//     std::cout << "YT: receive velocity: [" << encoder_m_s_[0] << ", " << encoder_m_s_[1] << ", " << encoder_m_s_[2] << ", " << encoder_m_s_[3] 
+//               << "](m/s)" << std::endl << "                     =[" << temp[0] << ", " << temp[1] << ", " << temp[2] << ", " << temp[3] << "](rad/s)" << std::endl;
     
-    //YT change the coordinate from jz to YT
-    temp[2] *= -1;
-    temp[3] *= -1;
-    decode(temp[0], temp[1], temp[2], temp[3]);
-}
+//     //YT change the coordinate from jz to YT
+//     temp[2] *= -1;
+//     temp[3] *= -1;
+//     decode(temp[0], temp[1], temp[2], temp[3]);
+// }
 
 
-void mecanum_odom::encoderCallBack(const geometry_msgs::Twist::ConstPtr& msg)
+void mecanum_odom::encoderCallBack(const nav_msgs::Odometry::ConstPtr& msg)
 {
     last_walltime_ = now_walltime_;
     now_walltime_ = ros::WallTime::now();
 
-    encoder_m_s_[0] = msg->linear.x;
-    encoder_m_s_[1] = msg->linear.y;
-    encoder_m_s_[2] = msg->linear.z;
-    encoder_m_s_[3] = msg->angular.x;
+    encoder_m_s_[0] = msg->twist.twist.linear.x;
+    encoder_m_s_[1] = msg->twist.twist.linear.y;
+    encoder_m_s_[2] = msg->twist.twist.linear.z;
+    encoder_m_s_[3] = msg->twist.twist.angular.x;
     double temp[4];
     for(unsigned int i = 0; i < 4; i++)
     {
         temp[i] = encoder_m_s_[i]/wheelr;
 	}
     std::cout << "YT: receive velocity: [" << encoder_m_s_[0] << ", " << encoder_m_s_[1] << ", " << encoder_m_s_[2] << ", " << encoder_m_s_[3] 
-              << "](m/s)-->[" << temp[0] << ", " << temp[1] << ", " << temp[2] << ", " << temp[3] << "](rad/s)" << std::endl;
-    
+              << "](m/s)" << std::endl;
+              // -->[" << temp[0] << ", " << temp[1] << ", " << temp[2] << ", " << temp[3] << "](rad/s)" << std::endl;
+    std::ofstream f;
+    f.open("/home/jz/yt_odom_feedback.txt", std::ios::app);
+
+    f << encoder_m_s_[0] << ", " << encoder_m_s_[1] << ", " 
+      << encoder_m_s_[2] << ", " << encoder_m_s_[3] << ", " 
+      << ros::WallDuration(now_walltime_ - last_walltime_).toSec() << ";" << std::endl;
+
+    f.close();
+
     //YT change the coordinate from jz to YT
     temp[2] *= -1;
     temp[3] *= -1;
@@ -88,22 +101,18 @@ void mecanum_odom::keyDownCallBack(const keyboard::Key::ConstPtr& msg)
 
 void mecanum_odom::publishOdom()
 {
-    gazebo_msgs::ModelState ms;
-    ms.model_name = "jackal";
-    ms.pose.position.x = x_m_;
-    ms.pose.position.y = y_m_;
+    geometry_msgs::PoseStamped p;
+    p.pose.position.x = x_m_;
+    p.pose.position.y = y_m_;
+
+    // gazebo_msgs::ModelState ms;
+    // ms.model_name = "jackal";
+    // ms.pose.position.x = x_m_;
+    // ms.pose.position.y = y_m_;
     tf::Quaternion q = tf::createQuaternionFromYaw(w_rad_);
-    tf::quaternionTFToMsg(q, ms.pose.orientation);
-
-    modelstate_pub_.publish(ms);
- //    ros::WallDuration d = now_walltime_ - last_walltime_;
-
-    // x_m_ += temp.linear.x * d.toSec();
-    // y_m_ += temp.linear.y * d.toSec();
-    // w_rad_ += temp.angular.z * d.toSec();
-
-
-    // std::cout << "YT: pose before now: [" << x_m_ << ", " << y_m_ << ", " << w_rad_ << "]" << std::endl;
+    tf::quaternionTFToMsg(q, p.pose.orientation);
+    odom_pub_.publish(p);
+    // modelstate_pub_.publish(ms);
 }
 
 void mecanum_odom::decode(double v0_rad_s, double v1_rad_s, double v2_rad_s, double v3_rad_s)
@@ -133,11 +142,11 @@ void mecanum_odom::decode(double v0_rad_s, double v1_rad_s, double v2_rad_s, dou
         temp.angular.z = 0;
 
 
-    std::cout << "YT: veolcity now: [" << temp.linear.x << ", " << temp.linear.y << ", " << temp.angular.z << "]" <<std::endl;
+    std::cout << "YT: center veolcity: [" << temp.linear.x << ", " << temp.linear.y << ", " << temp.angular.z << "]" <<std::endl;
 ////////////////////////////////////////////////////////////////////
 /////////////////////now for odometry///////////////////////////////////////////////
-    // ros::WallDuration d = now_walltime_ - last_walltime_;
-    ros::WallDuration d(1, 0);//assume 1 second between two command
+    ros::WallDuration d = now_walltime_ - last_walltime_;
+    // ros::WallDuration d(1, 0);//assume 1 second between two command
 
     if(last_vel_[2] == 0)//no rotation
     {
@@ -146,7 +155,7 @@ void mecanum_odom::decode(double v0_rad_s, double v1_rad_s, double v2_rad_s, dou
     }
     else 
     {   
-        std::cout << "MOVE WITH ROTATION" << std::endl;
+        // std::cout << "MOVE WITH ROTATION" << std::endl;
         double min_radius = fabs(sqrt(last_vel_[0] * last_vel_[0] + last_vel_[1] * last_vel_[1])/last_vel_[2]);
         double angle_temp = fabs(last_vel_[2] * d.toSec());
         double oldpose[3] = {x_m_, y_m_, w_rad_ + atan2(last_vel_[1] , last_vel_[0])};
@@ -192,8 +201,12 @@ void mecanum_odom::decode(double v0_rad_s, double v1_rad_s, double v2_rad_s, dou
     last_vel_[1] = robot_current[1];
     last_vel_[2] = robot_current[2];
 
+    if(w_rad_ > M_PI )
+        w_rad_ -= M_PI * 2;
+    if(w_rad_ < -M_PI)
+        w_rad_ += M_PI * 2;
 
-    std::cout << "YT: pose before now: [" << x_m_ << ", " << y_m_ << ", " << w_rad_ << "]" << std::endl;
+    std::cout << "YT: center pose: [" << x_m_ << ", " << y_m_ << ", " << w_rad_ << "]" << std::endl;
 
     //temp is measured in m/s and rad/s
     publishOdom();

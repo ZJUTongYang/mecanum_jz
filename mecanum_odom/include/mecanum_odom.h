@@ -3,6 +3,7 @@
 #include <geometry_msgs/Twist.h>
 #include <keyboard/Key.h>
 #include <math.h>
+#include <nav_msgs/Odometry.h>
 
 //mecanum wheel config
 //(1)leftfront(2)leftback(3)rightback(4)rightfront
@@ -24,8 +25,8 @@ public:
 mecanum_odom();
 ~mecanum_odom(){}
 // void robotCmdCallBack(const geometry_msgs::Twist::ConstPtr& msg);
-void encoderCallBack(const geometry_msgs::Twist::ConstPtr& msg);
-void testCmdvelCallBack(const geometry_msgs::Twist::ConstPtr& msg);
+void encoderCallBack(const nav_msgs::Odometry::ConstPtr& msg);
+// void testCmdvelCallBack(const geometry_msgs::Twist::ConstPtr& msg);
 void keyDownCallBack(const keyboard::Key::ConstPtr& msg);
 void decode(double, double, double, double);
 // void publishwheelvel(double vel_0, double vel_1, double vel_2, double vel_3);

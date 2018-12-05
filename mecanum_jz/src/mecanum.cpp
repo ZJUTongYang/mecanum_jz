@@ -22,60 +22,60 @@ void mecanum::robotCmdCallBack(const geometry_msgs::Twist::ConstPtr& msg)
 void mecanum::keyDownCallBack(const keyboard::Key::ConstPtr& msg)
 {
   ROS_INFO("key code=%d", msg->code);
-  switch(msg->code)
+  /*switch(msg->code)
   {
   	case 273:
   	{
-  		plan(0.25, 0, 0);
+  		plan(0.01, 0, 0);
   		break;
   	}
   	case 274:
   	{
-  		plan(-0.25, 0, 0);
+  		plan(-0.01, 0, 0);
   		break;
   	}
   	case 275:
   	{
-  		plan(0, -0.25, 0);
+  		plan(0, -0.01, 0);
   		break;
   	}
   	case 276:
   	{
-  		plan(0, 0.25, 0);
+  		plan(0, 0.01, 0);
   		break;
   	}
   	case 119:
   	{
-  		plan(0.25, 0, 0);
+  		plan(0.01, 0, 0);
   		break;
   	}
   	case 115:
   	{
-  		plan(-0.25, 0, 0);
+  		plan(-0.01, 0, 0);
   		break;
   	}
   	case 97:
   	{
-  		plan(0, 0.25, 0);
+  		plan(0, 0.01, 0);
   		break;
   	}
   	case 100:
   	{
-  		plan(0, -0.25, 0);
+  		plan(0, -0.01, 0);
   		break;
   	}
   	case 113:
   	{
-  		plan(0, 0, 0.25);
+  		plan(0, 0, 0.01);
   		break;
   	}
   	case 101:
   	{
-  		plan(0, 0, -0.25);
+  		plan(0, 0, -0.01);
   		break;
   	}
   		
-  }
+  }*/
 }
 
 void mecanum::publishwheelvel(double vel_0, double vel_1, double vel_2, double vel_3)
